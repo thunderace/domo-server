@@ -9,9 +9,11 @@ import subprocess
 PORT_ID = "COM4"
 DB_NAME = "teleinfo"
 
+def saveTrame(trameMap):
+  return true
 
 def analyseTrame(trame):
-  trameMap = "" # new Map
+  trameMap = {} # new Map
   lines = trame.split("\r\n\r\n")
   for line in lines:
     values = line.split(" ")
@@ -19,12 +21,13 @@ def analyseTrame(trame):
       etiquette = values[0]
       valeur = values[1]
       checksum = values[2]
-      
+      trameMap[etiquette] = valeur
       # if (calcChecksum(etiquette, valeur) == checksum  
         # && calcMessageSize(etiquette) == valeur.length
         # ) {
           # trameMap.set(etiquette, valeur);
       # }      
+  print(trameMap)
   return trameMap  
 
 def test():
@@ -35,9 +38,10 @@ def readSerial(portId):
   try:
     subprocess.call("stty -F " + portId + " 1200 sane evenp parenb cs7 -crtscts")
     print("config port " + portId + " ok")  
-  except ex:
-    print("Exception " + ex)  
+  except Exception:
+    print("Exception ")  
   ser = serial.Serial(portId, 115200)
+  print("opening " + portId)
   ser.open()
   if (ser.isOpen()):
     print("Port open")
@@ -58,9 +62,11 @@ def readSerial(portId):
   return content
 
 def dumpTeleinfo(portId):
-  content = readSerial(portId)
-
+  trame = readSerial(portId)
+  trameMap = analyseTrame(trame)
+  saveTrame(trameMap)
 
 print("teleinfo starting")
-dumpTeleinfo(PORT_ID)
+#dumpTeleinfo(PORT_ID)
+test()
 print("teleinfo end")
