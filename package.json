@@ -1,5 +1,5 @@
 {
-  "name": "node-domo",
+  "name": "domo-server",
   "version": "1.0.0",
   "description": "Application domotique",
   "main": "server.js",
