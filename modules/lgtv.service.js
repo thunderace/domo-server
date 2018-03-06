@@ -1,12 +1,13 @@
-// mqtt
-const MQTT_NODE_DOMO_LOG = 'home/domo/log/nodedomo';
-var client;
 
+var logService = require('./log.service.js');
 var wol = require("node-wol");
 var lgtv = require("lgtv2")({
 //  url: 'ws://lgwebostv:3000'
   url: 'ws://192.168.0.42:3000'
 });
+
+const MQTT_NODE_DOMO_LOG = 'home/domo/log/nodedomo';
+var client;
 
 function init(mqttClient) {
   client = mqttClient;
@@ -16,7 +17,7 @@ function logMqtt(msg) {
   if (client) {
     client.publish(MQTT_NODE_DOMO_LOG, msg); 
   } else {
-    console.log("ERROR: client is null");
+    logService.log("ERROR: client is null");
   }
 }
 
@@ -24,10 +25,10 @@ function logMqtt(msg) {
 // LGwebOSTV B4:E6:2A:38:31:46 192.168.0.42
 
 function wolLgTv() {
-  console.log("WOL LG TV");
+  logService.log("WOL LG TV");
   wol.wake("B4:E6:2A:38:31:46", function(error) {
     if (error) {
-      console.log("WOL LG TV error:"+error);
+      logService.log("WOL LG TV error:"+error);
       return;
     }
   });
@@ -35,13 +36,13 @@ function wolLgTv() {
 //var magicPacket = wol.createMagicPacket("B4:E6:2A:38:31:46");
 
 lgtv.on('error', function (err) {
-  console.log(err);
+  logService.log(err);
 });
 
 lgtv.on('connect', function () {
 	var msg = 'LGTV connected';
   client.publish(MQTT_NODE_DOMO_LOG, msg);
-  console.log(msg);
+  logService.log(msg);
   
   lgtv.subscribe('ssap://audio/getVolume', function (err, res) {
       if (res.changed.indexOf('volume') !== -1) { 
@@ -58,7 +59,7 @@ lgtv.on('connect', function () {
 lgtv.on('close', function () {
 	var msg = 'LGTV disconnected';
   client.publish(MQTT_NODE_DOMO_LOG, msg);
-  console.log(msg);
+  logService.log(msg);
 });
 
 // cmd ex: 
@@ -95,11 +96,11 @@ function execCmdLgTv(cmd) {
     } else {
       // 'ssap://system/turnOff'
       lgtv.request('ssap://'+cmd, function (err) {
-        console.log("LGTV error "+err);
+        logService.log("LGTV error "+err);
       });
     }
 	} catch(ex) {
-		console.log("LGTV exception "+ex);
+		logService.log("LGTV exception "+ex);
 	} 
 }
 

@@ -1,8 +1,8 @@
 /*
-pm2 start /var/www/node-domo/server.js
-pm2 stop /var/www/node-domo/server.js
-pm2 restart /var/www/node-domo/server.js
-node /var/www/node-domo/server.js
+pm2 start /var/www/domo-server/domo-server.js
+pm2 stop /var/www/domo-server/domo-server.js
+pm2 restart /var/www/domo-server/domo-server.js
+node /var/www/domo-server/domo-server.js
 */
 
 // test 2
@@ -18,6 +18,7 @@ var http = require('http');
 var ip = require("ip");
 var wifiName = require('wifi-name');
 
+var logService = require('./modules/log.service.js');
 var dbService = require('./modules/db.service.js');
 var domoService = require('./modules/domo.service.js');
 var telegramService = require('./modules/telegram.service.js');
@@ -28,11 +29,11 @@ const VERSION = '23/02/2018 12:16';
 var versionMsg = 'Serveur ' + serverId + ' ' + VERSION;
 const CONFIG_FILENAME = "configNodejsDomo.json";
 
-console.log(versionMsg);
+const isLogEnabled = true;
+const isMqttLogEnabled = true;
 
-var isLogEnabled = false;
-var isMqttLogEnabled = false;
-
+logService.init(isLogEnabled);
+logService.log(versionMsg);
 
 // MQTT ---------------------------------------------
 // 82.66.49.29:1880/mqtt?topic=home/domo/nodedomo/cmd&payload=macro.test2
@@ -57,7 +58,7 @@ wifiName().then(name => {
 });
 
 client.on('connect', function () {
-	console.log("Connected to mqtt server " + MQTT_URL);
+	logService.log("Connected to mqtt server " + MQTT_URL);
   client.subscribe(MQTT_DOMO + '#');
   client.publish(MQTT_NODE_DOMO_LOG, 'Node domo server started ' + VERSION);
 });
@@ -65,7 +66,7 @@ client.on('connect', function () {
 client.on('message', function (topic, message) {
 	if (message.toString().lastIndexOf('wdmqtt') >= 0) { return; }
   if (isMqttLogEnabled) {
-    console.log("MQTT " + topic.toString() + " " + message.toString());
+    logService.log("MQTT " + topic.toString() + " " + message.toString());
   }
   
   // bdd log
@@ -74,18 +75,18 @@ client.on('message', function (topic, message) {
 	
 	// cmd
 	if (topic.toString().indexOf(MQTT_NODE_DOMO_CMD) >= 0) { 
-		console.log("MQTT exec [" + message.toString() + "]");
+		logService.log("MQTT exec [" + message.toString() + "]");
 		domoService.runCommand({ "type": "cmdCommand", "id": message.toString() });
 		return;
 	}
 	if (topic.toString().indexOf(MQTT_NODE_DOMO_TVLG) >= 0) { 
-		console.log("MQTT exec TVLG [" + message.toString() + "]");
+		logService.log("MQTT exec TVLG [" + message.toString() + "]");
 		lgtvService.execCmdLgTv(message.toString());
 		return;
 	}
 	// inventory
 	if (topic.toString().indexOf(MQTT_NODE_DOMO_INV_CMD) >= 0) { 
-		console.log("MQTT inventory cmd");
+		logService.log("MQTT inventory cmd");
     var s = '{';
     s += '"id": "' + serverId + '", ';
     s += '"status": "OK", ';
@@ -103,7 +104,7 @@ client.on('message', function (topic, message) {
 		return;
 	}
 	if (topic.toString().indexOf(MQTT_NODE_DOMO_INV_RES) >= 0) { 
-//		console.log("MQTT inventory response: " + message.toString());
+//		logService.log("MQTT inventory response: " + message.toString());
     domoService.saveInventory(JSON.parse(message.toString()));
 		return;
 	}
@@ -111,7 +112,7 @@ client.on('message', function (topic, message) {
 	// trigger
 	var trigger = domoService.findMqttTrigger(topic.toString(), message.toString());
 	if (trigger != null) {
-		console.log("exec trigger " + message.toString());
+		logService.log("exec trigger " + message.toString());
 		domoService.runCommand(trigger.command);
 	}
 });
@@ -135,7 +136,7 @@ app.use(function (req, res, next) {
 // Site Web ----------------------------------------
 // index.html
 app.get("/", function (req, res) { 
-  console.log("get('/'): index.html");
+  logService.log("get('/'): index.html");
   res.sendFile(__dirname + "/app/index.html"); 
 }); 
 // Arborescence app
@@ -154,15 +155,15 @@ app.get("/api/cmd", function(req, res, next) {
   try {
     var cmd = req.query.cmd;
     if (cmd == undefined) { 
-      console.log("(api /api/cmd) Erreur: pas de parametre cmd");
+      logService.log("(api /api/cmd) Erreur: pas de parametre cmd");
     } else {
-      console.log("(api /api/cmd) exec cmd" + cmd);
+      logService.log("(api /api/cmd) exec cmd" + cmd);
       domoService.runCommand({ "type": "cmdCommand", "id": cmd });
       res.send({ "result": "ok" });
     }
   }
   catch (ex) {
-    console.log("(api /api/cmd) exception " + ex);
+    logService.log("(api /api/cmd) exception " + ex);
     res.send("exception");
   }
 });
@@ -173,11 +174,11 @@ app.get("/api/cmd", function(req, res, next) {
 app.get("/api/lgtv", function(req, res, next) {
 	var cmd = req.query.cmd;
   if (cmd == undefined) { 
-	  console.log("(api /api/lgtv) Erreur: pas de parametre cmd");
+	  logService.log("(api /api/lgtv) Erreur: pas de parametre cmd");
 	} else {
     var msg = "LGTV send cmd [" + cmd + "]";
     lgtvService.execCmdLgTv(cmd);
-    console.log(msg);
+    logService.log(msg);
     res.send({ content: msg });
 	}
 });
@@ -202,20 +203,20 @@ app.get("/api/status", function(req, res, next) {
         path: "/donnees",
         port: "8182"
       }, function(response) {
-        console.log("(api /api/status) appel ok " + response);
+        logService.log("(api /api/status) appel ok " + response);
         res.send("undefined");
       });
       req1.end();  
     } else if (id != undefined) {
       var s = "" + domoService.getStatus(id);
-      console.log("(api /api/status) id=" + id + " status=" + s);
+      logService.log("(api /api/status) id=" + id + " status=" + s);
       res.send(s);
     } else {
         res.send("undefined");
     }
   }
   catch (ex) {
-    console.log("(api /api/status) exception " + ex);
+    logService.log("(api /api/status) exception " + ex);
     res.send("exception");
   }
 });
@@ -226,9 +227,9 @@ app.post("/api/configdomo", function(req, res) {
   var outputFilename = __dirname + "/api/res/configdomowww.json";
   fs.writeFile(outputFilename, JSON.stringify(data, null, 2), function(err) {
       if (err) {
-        console.log(err);
+        logService.log(err);
       } else {
-        console.log("JSON saved to " + outputFilename);
+        logService.log("JSON saved to " + outputFilename);
       }
   });  
   res.send(); 
@@ -249,7 +250,7 @@ app.post("/api/mqtt", function(req, res) {
     }
   }
   catch (ex) {
-    console.log("(api /api/mqtt) exception " + ex);
+    logService.log("(api /api/mqtt) exception " + ex);
     res.send("exception");
   }
 }); 
@@ -266,7 +267,7 @@ app.get("/api/edf/:duree", function(req, res) {
   datedebut.setDate(datedebut.getDate() - duree / 24);
   var datedebuts = moment(datedebut).format("YYYY-MM-DD HH:mm");
   var condition = "WHERE time>='" + datedebuts + "' ORDER BY time DESC";
-  console.log("Récupération données edf début=" + datedebuts + " durée=" + duree + "h");
+  logService.log("Récupération données edf début=" + datedebuts + " durée=" + duree + "h");
   dbService.getBOFromDB("teleinfo", "teleinfo", "time, PAPP", req, res, condition);
 }); 
 
@@ -280,7 +281,7 @@ app.get("/api/edf1", function(req, res) {
     
     if (dateParam != undefined) { 
       datedebut = new Date(dateParam);
-      console.log("dateParam=" + dateParam + " datedebut=" + moment(datedebut).format("YYYY-MM-DD HH:mm"));
+      logService.log("dateParam=" + dateParam + " datedebut=" + moment(datedebut).format("YYYY-MM-DD HH:mm"));
     } else {
       datedebut.setDate(datedebut.getDate() - duree / 24);
     }
@@ -289,12 +290,12 @@ app.get("/api/edf1", function(req, res) {
     var datedebuts = moment(datedebut).format("YYYY-MM-DD HH:mm");
     var datefins = moment(datefin).format("YYYY-MM-DD HH:mm");
     
-    console.log("Récupération données edf début=" + datedebuts + " fin=" + datefins + " durée=" + duree + "h");
+    logService.log("Récupération données edf début=" + datedebuts + " fin=" + datefins + " durée=" + duree + "h");
     var condition = "WHERE time>='" + datedebuts + "' AND time<='" + datefins + "' ORDER BY time DESC";
     dbService.getBOFromDB("teleinfo", "teleinfo", "time, PAPP", req, res, condition);
   }
   catch (ex) {
-    console.log("(api /api/edf1) exception " + ex);
+    logService.log("(api /api/edf1) exception " + ex);
     res.send("exception");
   }
 }); 
@@ -312,7 +313,7 @@ app.get("/api/mesure", function(req, res) {
   var nom = req.query.nom;
   if (nom != undefined) { condition = condition + "AND nom LIKE '" + nom + "' ";}
   condition = condition + "ORDER BY date DESC";
-  console.log("Récupération données edf début=" + datedebuts + " durée=" + duree + "h");
+  logService.log("Récupération données edf début=" + datedebuts + " durée=" + duree + "h");
   dbService.getBOFromDB("domo", "mesure", "*", req, res, condition);
 }); 
 
@@ -336,4 +337,4 @@ lgtvService.init(client);
 
 // Server start
 app.listen(8888);
-console.log("Serveur node-domo started on port 8888.");
+logService.log("Serveur node-domo started on port 8888.");

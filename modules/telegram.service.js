@@ -1,8 +1,9 @@
+var logService = require('./log.service.js');
+
 // mqtt
 const MQTT_NODE_DOMO_LOG = 'home/domo/log/nodedomo';
 var client;
 var domoService;
-
 
 function init(mqttClient, pDomoService) {
   client = mqttClient;
@@ -13,7 +14,7 @@ function logMqtt(msg) {
   if (client) {
     client.publish(MQTT_NODE_DOMO_LOG, msg); 
   } else {
-    console.log("ERROR: client is null");
+    logService.log("ERROR: client is null");
   }
 }
 
@@ -29,7 +30,7 @@ const { reply } = Telegraf
 const bot = new Telegraf(token)
 
 bot.start((ctx) => {
-  console.log('started:', ctx.from.id)
+  logService.log('started:', ctx.from.id)
   return ctx.reply('Bienvenue a Domo!')
 })
 bot.command('help', (ctx) => ctx.reply('Try send a sticker!'))
@@ -223,7 +224,6 @@ bot.action(/.+/, (ctx) => {
 })
 
 bot.startPolling();
-
 
 module.exports = {
   init: init,

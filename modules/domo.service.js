@@ -2,6 +2,7 @@ var fs = require('fs');
 var http = require('http');
 var unirest = require('unirest');
 var exec = require('child_process').exec;
+var logService = require('./log.service.js');
 
 var configdomo = {};
 var mapStatus = new Map();
@@ -20,14 +21,8 @@ const CMD_REBOOT = "reboot";
 const MQTT_NODE_DOMO_LOG = 'home/domo/log/nodedomo';
 var client;
 
-function log(msg) {
-  if (isLogEnabled) {
-    console.log(msg);
-  }
-}
-
 function init(configFileName, mqttClient, pVersionMsg, pIsLogEnabled) {
-  isLogEnabled = pIsLogEnabled;
+  logService.init(pIsLogEnabled);
   configdomo = {};    
   client = mqttClient;
   versionMsg = pVersionMsg;
@@ -39,7 +34,7 @@ function logMqtt(msg) {
   if (client) {
     client.publish(MQTT_NODE_DOMO_LOG, msg); 
   } else {
-    console.log("ERROR: client is null");
+    logService.log("ERROR: client is null");
   }
 }
 
@@ -54,7 +49,7 @@ function initConfigDomo(configFileName) {
 function loadConfigDomo(configFileName) {
   fs.readFile(configFileName, 'utf8', function (err, data) {
     if (err) {
-      console.log(err);
+      logService.log(err);
     } else {
       var msg;
       try {
@@ -120,7 +115,7 @@ function findMqttTrigger(topic, payload) {
           configdomo.triggers[i].payload == payload || 
           configdomo.triggers[i].payload == payload1) {
           trigger = configdomo.triggers[i];
-			    console.log(">> trigger found: [" + trigger.command.id + "]");
+			    logService.log(">> trigger found: [" + trigger.command.id + "]");
           
           // Debounce. Attention ! debounce not working for trigger.payload = "*"
           if (lastMessages.length > 0) { // && trigger.debounce
@@ -130,13 +125,13 @@ function findMqttTrigger(topic, payload) {
                 var t = t1 - lastMessage.date;
                 if (trigger.debounce) {
                   if (t < trigger.debounce) {
-                    console.log(">> debounce on: delta last cmd=" + t + "ms");
+                    logService.log(">> debounce on: delta last cmd=" + t + "ms");
                     trigger = null;
                   } else { 
-                    console.log(">> debounce off: delta last cmd=" + t + "ms");
+                    logService.log(">> debounce off: delta last cmd=" + t + "ms");
                   }    
                 } else { 
-                  console.log(">> no trigger debounce");
+                  logService.log(">> no trigger debounce");
                 }                
               }
             }
@@ -191,7 +186,7 @@ function runCommand(command, logMqtt = true) {
     }
       
 		if (command.type == "cmdCommand") {
-			console.log("cmdCommand " + command.id);
+			logService.log("cmdCommand " + command.id);
 			var configCommand = findCommand(command.id);
 			if (configCommand != null) {
 				runCommand(configCommand, false);
@@ -206,39 +201,39 @@ function runCommand(command, logMqtt = true) {
         else if (command.id == CMD_REBOOT) {
           client.publish(MQTT_NODE_DOMO_LOG, "domo-node-server rebooting...");
           exec('sudo pm2 restart /var/www/node-domo/server.js', (error, stdout, stderr) => {
-            console.log(`${stdout}`);
-            console.log(`${stderr}`);
+            logService.log(`${stdout}`);
+            logService.log(`${stderr}`);
             if (error !== null) {
-                console.log(`exec error: ${error}`);
+                logService.log(`exec error: ${error}`);
             }
           });
         }        
         else {
-				  console.log("cmdCommand error: command not found");
+				  logService.log("cmdCommand error: command not found");
         }
 			}
 		}
     
 		if (command.type == "cmdComposite") {
-			console.log("cmdComposite ");
+			logService.log("cmdComposite ");
 			runCommands(command.commands);
 			return;
 		}
     
 		if (command.type == "cmdMqtt") {
-			console.log("cmdMqtt " + command.topic + " " + command.payload);
+			logService.log("cmdMqtt " + command.topic + " " + command.payload);
 			client.publish(command.topic, command.payload);
       return;
 		}
     
 		if (command.type == "cmdWait") {
-			console.log("cmdWait " + command.duration);
+			logService.log("cmdWait " + command.duration);
 			var waitTill = new Date(new Date().getTime() + command.duration);
 			while (waitTill > new Date()) {}
 		}
 
 		if (command.type == "cmdToggle") {
-			console.log("cmdToggle " + command.id);
+			logService.log("cmdToggle " + command.id);
       var id = command.id;
       if (command.key != undefined) { id = command.key; }
 			var v = toggleStatus(id);
@@ -249,7 +244,7 @@ function runCommand(command, logMqtt = true) {
 			}
 		}
 	} catch (ex) {
-		console.log("Exception (runCommand) " + ex);
+		logService.log("Exception (runCommand) " + ex);
 	}
 }
 
@@ -267,7 +262,7 @@ var mapDevices = new Map();
 
 function setDevice(id, value) {
 	mapDevices.set(id, value); 
-  console.log(">> Device [" + id + "]=" + JSON.stringify(value));
+  logService.log(">> Device [" + id + "]=" + JSON.stringify(value));
 }
 
 function getDevice(id) {
@@ -279,7 +274,7 @@ function getMapDevices() {
 }
 
 function saveInventory(inventory) {
-//  console.log(">> saveInventory "+JSON.stringify(inventory)+" id="+inventory.id);
+//  logService.log(">> saveInventory "+JSON.stringify(inventory)+" id="+inventory.id);
   if (inventory != undefined && inventory.id != undefined) {
     setDevice(inventory.id, inventory);
     if (inventory.wsUrl != undefined && inventory.invWS != undefined) {
@@ -287,16 +282,16 @@ function saveInventory(inventory) {
       if (wsInv.indexOf("://") == -1) {
         wsInv += "http://";
       }
-      console.log(">> call inventory ws:" + wsInv);
+      logService.log(">> call inventory ws:" + wsInv);
       
       unirest.get(wsInv).end(function (response) {
         try {
-          console.log(response.body);
+          logService.log(response.body);
           var inventory1 = JSON.parse(response.body);
           setDevice(inventory1.id, inventory1);
         }
         catch (ex) {
-          console.log("Exception " + ex);
+          logService.log("Exception " + ex);
         }
       });
     }

@@ -1,9 +1,10 @@
 var mysql = require('mysql');
+var logService = require('./log.service.js');
 
-var isLogEnabled = false;
+const isLogEnabled = false;
 
 function init(pIsLogEnabled) {
-  isLogEnabled = pIsLogEnabled;    
+  logService.init(pIsLogEnabled);
 }
 
 function getDBConnection(dbName) {
@@ -16,15 +17,9 @@ function getDBConnection(dbName) {
   return connection;
 }
 
-function log(msg) {
-  if (isLogEnabled) {
-    console.log(msg);
-  }
-}
-
 function getBOFromDB(dbName, boName, fields, req, res, condition) {
   var t1 = Date.now();
-  log("Execution getBOFromDB ["+boName+"]");
+  logService.log("Execution getBOFromDB ["+boName+"]");
   var connection = this.getDBConnection(dbName);
   connection.connect();
   var query = "SELECT "+fields+" FROM "+boName;
@@ -39,10 +34,10 @@ function getBOFromDB(dbName, boName, fields, req, res, condition) {
       var t3 = Date.now();
       var dt2 = t3-t2;
       var dt3 = t3-t1;
-      log("Execution requete ["+query+"] ok (total = "+dt3+" ms, requête en "+dt1+" ms)");
+      logService.log("Execution requete ["+query+"] ok (total = "+dt3+" ms, requête en "+dt1+" ms)");
     }
     else {
-      log("Erreur execution requete ["+query+"]");
+      logService.log("Erreur execution requete ["+query+"]");
       res.send(); 
     }
   });
@@ -51,7 +46,7 @@ function getBOFromDB(dbName, boName, fields, req, res, condition) {
 
 function execDBQuery(dbName, query, req, res) {
   var t1 = Date.now();
-  log("Execution execDBQuery ["+query+"]");
+  logService.log("Execution execDBQuery ["+query+"]");
   var connection = this.getDBConnection(dbName);
   connection.connect();
 
@@ -65,10 +60,10 @@ function execDBQuery(dbName, query, req, res) {
       var t3 = Date.now();
       var dt2 = t3-t2;
       var dt3 = t3-t1;
-      log("Execution requete ["+query+"] ok (total = "+dt3+" ms, requête en "+dt1+" ms)");
+      logService.log("Execution requete ["+query+"] ok (total = "+dt3+" ms, requête en "+dt1+" ms)");
     }
     else {
-      log("Erreur execution requete ["+query+"]");
+      logService.log("Erreur execution requete ["+query+"]");
       if (!res && res!=null) {
         res.send();
       }      
