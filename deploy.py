@@ -5,17 +5,17 @@ from ftplib import FTP
 import os
 
 host = '82.66.49.29'
-#port = 8132
-#usr = 'root'
 port = 8136
-usr = 'pi'
+#port = 8132
+usr = 'root'
+#usr = 'pi'
 pwd = 'tetris'
 
 localDir = '.'
 #remoteDir = '/var/www/node-domo'
 remoteDir = '/var/www/domo-server'
 
-excludedDir = { ".git" , "node_modules", "python", "bdd" }
+excludedDir = { ".git" , "node_modules", "python" }
 
 def copyDirToFtp(ftp, localDir, remoteDir, excludedDir):
     print("\ncopy files from "+localDir+" to "+remoteDir)
