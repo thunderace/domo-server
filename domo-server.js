@@ -24,13 +24,13 @@ var domoService = require('./modules/domo.service.js');
 var telegramService = require('./modules/telegram.service.js');
 var lgtvService = require('./modules/lgtv.service.js');
 
-var serverId = "node-domo-server-" + new Date().getTime(); 
-const VERSION = '23/02/2018 12:16';
-var versionMsg = 'Serveur ' + serverId + ' ' + VERSION;
+const VERSION = '08032018-1052';
 const CONFIG_FILENAME = "configNodejsDomo.json";
-
 const isLogEnabled = true;
 const isMqttLogEnabled = true;
+
+var serverId = "domo-server-" + new Date().getTime(); 
+var versionMsg = 'Serveur ' + serverId + ' ' + VERSION;
 
 logService.init(isLogEnabled);
 logService.log(versionMsg);

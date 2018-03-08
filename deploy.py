@@ -5,8 +5,8 @@ from ftplib import FTP
 import os
 
 host = '82.66.49.29'
-port = 8136
-#port = 8132
+#port = 8136
+port = 8132
 usr = 'root'
 #usr = 'pi'
 pwd = 'tetris'
