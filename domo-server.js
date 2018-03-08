@@ -1,3 +1,6 @@
+#!/usr/bin/env node
+"use strict";
+
 /*
 pm2 start /var/www/domo-server/domo-server.js
 pm2 stop /var/www/domo-server/domo-server.js
@@ -5,9 +8,6 @@ pm2 restart /var/www/domo-server/domo-server.js
 node /var/www/domo-server/domo-server.js
 */
 
-// test 2
-
-"use strict";
 var compression = require('compression');
 var express = require("express"); 
 var bodyParser = require("body-parser");
