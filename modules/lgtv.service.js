@@ -1,5 +1,6 @@
 
 var logService = require('./log.service.js');
+var color = require('bash-color');
 var wol = require("node-wol");
 var lgtv = require("lgtv2")({
 //  url: 'ws://lgwebostv:3000'
@@ -13,14 +14,6 @@ function init(mqttClient) {
   client = mqttClient;
 }
 
-function logMqtt(msg) {  
-  if (client) {
-    client.publish(MQTT_NODE_DOMO_LOG, msg); 
-  } else {
-    logService.log("ERROR: client is null");
-  }
-}
-
 // LGTV ---------------------------------------------
 // LGwebOSTV B4:E6:2A:38:31:46 192.168.0.42
 
@@ -28,7 +21,7 @@ function wolLgTv() {
   logService.log("WOL LG TV");
   wol.wake("B4:E6:2A:38:31:46", function(error) {
     if (error) {
-      logService.log("WOL LG TV error:"+error);
+      logService.log("WOL LG TV error:" + error);
       return;
     }
   });
@@ -36,7 +29,7 @@ function wolLgTv() {
 //var magicPacket = wol.createMagicPacket("B4:E6:2A:38:31:46");
 
 lgtv.on('error', function (err) {
-  logService.log(err);
+  logService.log(color.red(err));
 });
 
 lgtv.on('connect', function () {
@@ -46,11 +39,11 @@ lgtv.on('connect', function () {
   
   lgtv.subscribe('ssap://audio/getVolume', function (err, res) {
       if (res.changed.indexOf('volume') !== -1) { 
-        msg = 'volume changed '+ res.volume;
+        msg = 'volume changed ' + res.volume;
         client.publish(MQTT_NODE_DOMO_LOG, msg);
       }
       if (res.changed.indexOf('muted') !== -1) { 
-        msg = 'mute changed '+ res.muted;
+        msg = 'mute changed ' + res.muted;
         client.publish(MQTT_NODE_DOMO_LOG, msg);
       }
   });
@@ -82,29 +75,29 @@ function execCmdLgTv(cmd) {
     if (cmd == "system/turnOn") {
       wolLgTv();
     } else if (cmd == "volume0" || cmd == "vol0") {
-      lgtv.request('ssap://audio/setVolume', {volume: 0});
+      lgtv.request('ssap://audio/setVolume', { volume: 0 });
     } else if (cmd == "mute.on") {
-      lgtv.request('ssap://audio/setMute', {mute: true});
+      lgtv.request('ssap://audio/setMute', { mute: true });
     } else if (cmd == "mute.off") {
-      lgtv.request('ssap://audio/setMute', {mute: false});
+      lgtv.request('ssap://audio/setMute', { mute: false });
     } else if (cmd == "hdmi1") {
-      lgtv.request('ssap://tv/switchInput', {inputId: "HDMI_1"});
+      lgtv.request('ssap://tv/switchInput', { inputId: "HDMI_1" });
     } else if (cmd == "hdmi2") {
-      lgtv.request('ssap://tv/switchInput', {inputId: "HDMI_2"});
+      lgtv.request('ssap://tv/switchInput', { inputId: "HDMI_2" });
     } else if (cmd == "hdmi3") {
-      lgtv.request('ssap://tv/switchInput', {inputId: "HDMI_3"});
+      lgtv.request('ssap://tv/switchInput', { inputId: "HDMI_3" });
     } else {
       // 'ssap://system/turnOff'
-      lgtv.request('ssap://'+cmd, function (err) {
-        logService.log("LGTV error "+err);
+      lgtv.request('ssap://' + cmd, function (err) {
+        logService.log("LGTV error " + err);
       });
     }
-	} catch(ex) {
-		logService.log("LGTV exception "+ex);
+	} catch (ex) {
+		logService.log("LGTV exception " + ex);
 	} 
 }
 
 module.exports = {
   init: init,
   execCmdLgTv: execCmdLgTv,
-}
+};
