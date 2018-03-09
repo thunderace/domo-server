@@ -17,6 +17,8 @@ var moment = require('moment');
 var http = require('http');
 var ip = require("ip");
 var wifiName = require('wifi-name');
+var showdown = require('showdown');
+var converter = new showdown.Converter();
 
 var logService = require('./modules/log.service.js');
 var dbService = require('./modules/db.service.js');
@@ -139,6 +141,34 @@ app.get("/", function (req, res) {
   logService.log("get('/'): index.html");
   res.sendFile(__dirname + "/app/index.html"); 
 }); 
+
+app.get('/doc', function(req, res) {
+  var html = "<html><h2>Fichiers</h2>";
+  html += "<ul>";
+  fs.readdirSync(__dirname + '/app/doc').forEach(file => {
+        html += "<li><a href='" + file + "'>" + file + "</a></li>";
+  });
+  html += "</ul>";
+  html += "</html>";
+  console.log(html);
+  res.send(html);
+});
+
+app.get('/doc/:fileName', function(req, res) {
+  var fileName = req.params.fileName;
+  var ext = fileName.substr(fileName.lastIndexOf('.') + 1).toLowerCase();
+  var path = __dirname + '/app/doc/' + fileName;
+  logService.log("\r\n>>>> get('/doc') " + fileName + " " + ext);
+  if (ext == "md") {
+    fs.readFile(path, 'utf-8', function(err, data) {
+      if (err) throw err;
+      res.send(converter.makeHtml(data));
+    });
+  } else {
+    res.sendFile(path);
+  }
+});
+
 // Arborescence app
 app.use("/", express.static(__dirname + "/app"));
 
@@ -330,7 +360,7 @@ app.get("/api/devices", function(req, res, next) {
 });
 
 // App services
-dbService.init(isLogEnabled);
+dbService.init(false /*isLogEnabled*/);
 domoService.init(__dirname + "/api/res/" + CONFIG_FILENAME, client, versionMsg, isLogEnabled);
 telegramService.init(client, domoService);
 lgtvService.init(client);
