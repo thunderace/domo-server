@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import os
-import serial # pip install pyserial
 import subprocess
+import serial # pip install pyserial
 import mysql.connector # pip install mysql-connector-python --allow-external mysql-connector-python
 
 #PORT_ID = "/dev/ttyUSB0"
